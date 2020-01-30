@@ -1,21 +1,20 @@
-
 <h1>Quickstart</h1>
 
-* [Requirements](#requirements)
-* [Downloading CARLA](#downloading-carla)
-* [Running CARLA](#running-carla)
-* [Updating CARLA](#updating-carla)
-* [Summary](#summary)
+  * [Requirements](#requirements)
+  * [Downloading CARLA](#downloading-carla)
+  * [Running CARLA](#running-carla)
+  * [Updating CARLA](#updating-carla)
+  * [Summary](#summary)
 ---------------
 ##Requirements
 
 The quickstart installation uses a pre-packaged version of CARLA. This comprises the content in a boundle that can run automatically with no build installation needed. The API can be accesseded fully but in exchange, advanced customization and developing options are unavailable.  
 However, some requirements are still a must.  
 
-* __Server side:__ A good GPU will be needed to run a highly realistic environment (4GB minimum). A dedicated GPU is highly advised for machine learning. 
-* __Client side:__ The API is accessed via command line. To do so, [Python](https://www.python.org/downloads/) is necessary, and also a good internet connection and two TCP ports (2000 and 1 by default). 
-* __System requirements:__ Any 64-bits OS should run the corresponding version of CARLA.
-* __Other requirements:__  Only two specific Python modules: [Pygame](https://www.pygame.org/download.shtml), to create graphics directly with Python and [Numpy](https://pypi.org/project/numpy/) for great calculus.  
+  * __Server side:__ A good GPU will be needed to run a highly realistic environment (4GB minimum). A dedicated GPU is highly advised for machine learning. 
+  * __Client side:__ The API is accessed via command line. To do so, [Python](https://www.python.org/downloads/) is necessary, and also a good internet connection and two TCP ports (2000 and 1 by default). 
+  * __System requirements:__ Any 64-bits OS should run the corresponding version of CARLA.
+  * __Other requirements:__  Only two specific Python modules: [Pygame](https://www.pygame.org/download.shtml), to create graphics directly with Python and [Numpy](https://pypi.org/project/numpy/) for great calculus.  
 
 If you have [pip](https://pip.pypa.io/en/stable/installing/) in your system, you can geth both modules simply by running the following commands: 
 ```sh
@@ -81,8 +80,3 @@ So far, CARLA should be operative in the desired system. Terminal windows will b
 Go to: First steps</a>
 </p>
 </div>
-
-
-
-
-
