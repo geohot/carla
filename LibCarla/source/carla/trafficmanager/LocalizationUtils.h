@@ -61,13 +61,5 @@ namespace traffic_manager {
     std::unordered_map<GeoGridId, ActorIdSet> GetGridActors();
   };
 
-  /// Returns the cross product (z component value) between the vehicle's
-  /// heading vector and the vector along the direction to the next
-  /// target waypoint on the horizon.
-  float DeviationCrossProduct(Actor actor, const cg::Location &target_location);
-  /// Returns the dot product between the vehicle's heading vector and
-  /// the vector along the direction to the next target waypoint on the horizon.
-  float DeviationDotProduct(Actor actor, const cg::Location &target_location, bool rear_offset=false);
-
 } // namespace traffic_manager
 } // namespace carla

@@ -74,8 +74,11 @@ namespace LocalizationConstants {
 
       const Actor vehicle = actor_list.at(i);
       const ActorId actor_id = vehicle->GetId();
-      const cg::Location vehicle_location = vehicle->GetLocation();
+      const cg::Transform vehicle_transform = vehicle->GetTransform();
+      const cg::Location vehicle_location = vehicle_transform.location;
       const float vehicle_velocity = vehicle->GetVelocity().Length();
+      const auto vehicle_ptr = boost::static_pointer_cast<cc::Vehicle>(vehicle);
+      const float vehicle_half_length = vehicle_ptr->GetBoundingBox().extent.x;
 
       //TODO: Improve search so it doesn't do it every loop..
       auto search = idle_time.find(actor_id);
@@ -91,13 +94,15 @@ namespace LocalizationConstants {
 
       // Purge passed waypoints.
       if (!waypoint_buffer.empty()) {
-        float dot_product = DeviationDotProduct(vehicle, waypoint_buffer.front()->GetLocation(), true);
+        float dot_product = DeviationDotProduct(vehicle_transform, waypoint_buffer.front()->GetLocation(),
+                                                true, vehicle_half_length);
 
         while (dot_product <= 0.0f && !waypoint_buffer.empty()) {
 
           PopWaypoint(waypoint_buffer, actor_id);
           if (!waypoint_buffer.empty()) {
-            dot_product = DeviationDotProduct(vehicle, waypoint_buffer.front()->GetLocation(), true);
+            dot_product = DeviationDotProduct(vehicle_transform, waypoint_buffer.front()->GetLocation(),
+                                              true, vehicle_half_length);
           }
         }
       }
@@ -170,8 +175,8 @@ namespace LocalizationConstants {
         target_waypoint = waypoint_buffer.at(j);
       }
       const cg::Location target_location = target_waypoint->GetLocation();
-      float dot_product = DeviationDotProduct(vehicle, target_location);
-      float cross_product = DeviationCrossProduct(vehicle, target_location);
+      float dot_product = DeviationDotProduct(vehicle_transform, target_location);
+      float cross_product = DeviationCrossProduct(vehicle_transform, target_location);
       dot_product = 1.0f - dot_product;
       if (cross_product < 0.0f) {
         dot_product *= -1.0f;
@@ -421,7 +426,7 @@ namespace LocalizationConstants {
                   cg::Math::Dot(reference_heading, other_heading) > MAXIMUM_LANE_OBSTACLE_CURVATURE) {
 
                 const float squared_vehicle_distance = cg::Math::DistanceSquared(other_location, vehicle_location);
-                const float deviation_dot = DeviationDotProduct(vehicle, other_location);
+                const float deviation_dot = DeviationDotProduct(vehicle->GetTransform(), other_location);
 
                 if (deviation_dot > 0.0f) {
 
