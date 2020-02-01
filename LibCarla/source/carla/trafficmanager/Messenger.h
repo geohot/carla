@@ -79,6 +79,25 @@ namespace traffic_manager {
       }
     }
 
+    Data PeekPop () {
+
+      std::unique_lock<std::mutex> lock(data_modification_mutex);
+      while (d_queue.empty() && !stop_messenger.load()) {
+        receive_condition.wait_for(lock, 1ms, [=] {
+          return (!d_queue.empty() && stop_messenger.load());
+        });
+      }
+
+      // TODO: Reconsider the use of stop_messenger flag.
+      if(!stop_messenger.load()) {
+        Data data = d_queue.back();
+        d_queue.pop_back();
+        send_condition.notify_one();
+        return data;
+      }
+      return Data();
+    }
+
     void Start() {
       stop_messenger.store(false);
     }
