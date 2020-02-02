@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <mutex>
+
 #include "carla/client/Actor.h"
 #include "carla/client/ActorList.h"
 #include "carla/client/Vehicle.h"
@@ -15,6 +17,7 @@
 #include "carla/rpc/ActorId.h"
 
 #include "carla/trafficmanager/SimpleWaypoint.h"
+#include "carla/trafficmanager/Util.h"
 
 namespace carla {
 namespace traffic_manager {
@@ -40,6 +43,8 @@ namespace traffic_manager {
     std::unordered_map<ActorId, std::unordered_set<GeoGridId>> actor_to_grids;
     /// Actors currently passing through grids.
     std::unordered_map<GeoGridId, ActorIdSet> grid_to_actors;
+    /// Mutex for concurrent access.
+    std::mutex data_modification_mutex;
 
   public:
     TrackTraffic();
@@ -50,6 +55,7 @@ namespace traffic_manager {
     ActorIdSet GetPassingVehicles(uint64_t waypoint_id);
 
     void UpdateGridPosition(const ActorId actor_id, const Buffer& buffer);
+    void UpdateGridPosition(const ActorId actor_id, const std::vector<SimpleWaypointPtr>& buffer);
     void UpdateUnregisteredGridPosition(const ActorId actor_id, const SimpleWaypointPtr& waypoint);
 
     ActorIdSet GetOverlappingVehicles(ActorId actor_id);

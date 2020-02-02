@@ -20,7 +20,7 @@ namespace cg = carla::geom;
 
 using SimpleWaypointPtr = std::shared_ptr<SimpleWaypoint>;
 
-class Buffer
+class WaypointBuffer
 {
 
 private:
@@ -28,8 +28,8 @@ private:
     std::mutex data_modification_mutex;
 
 public:
-    Buffer(/* args */);
-    ~Buffer();
+    WaypointBuffer(/* args */);
+    ~WaypointBuffer();
 
     SimpleWaypointPtr Front();
     SimpleWaypointPtr Back();
@@ -38,37 +38,38 @@ public:
     SimpleWaypointPtr TargetAtDistance(float distance);
     void Purge(cg::Transform transform, float offset);
     void Seed(SimpleWaypointPtr waypoint);
-    std::vector<SimpleWaypointPtr> GetSparseWaypoint(uint number_of_cuts);
+    std::vector<SimpleWaypointPtr> GetSparseWaypoints(uint number_of_cuts);
     void Extend(float distance);
+    bool IsDivergenceInDistance(float distance);
 };
 
-Buffer::Buffer(/* args */)
+WaypointBuffer::WaypointBuffer()
 {
 }
 
-Buffer::~Buffer()
+WaypointBuffer::~WaypointBuffer()
 {
 }
 
-SimpleWaypointPtr Buffer::Front()
+SimpleWaypointPtr WaypointBuffer::Front()
 {
     std::lock_guard<std::mutex> lock(data_modification_mutex);
     return queue.front();
 }
 
-SimpleWaypointPtr Buffer::Back()
+SimpleWaypointPtr WaypointBuffer::Back()
 {
     std::lock_guard<std::mutex> lock(data_modification_mutex);
     return queue.back();
 }
 
-uint Buffer::Size()
+uint WaypointBuffer::Size()
 {
     std::lock_guard<std::mutex> lock(data_modification_mutex);
     return queue.size();
 }
 
-SimpleWaypointPtr Buffer::TargetAtDistance(float distance)
+SimpleWaypointPtr WaypointBuffer::TargetAtDistance(float distance)
 {
     std::lock_guard<std::mutex> lock(data_modification_mutex);
     SimpleWaypointPtr target_waypoint = queue.front();
@@ -82,7 +83,7 @@ SimpleWaypointPtr Buffer::TargetAtDistance(float distance)
     return target_waypoint;
 }
 
-void Buffer::Purge(cg::Transform transform, float offset)
+void WaypointBuffer::Purge(cg::Transform transform, float offset)
 {
     std::lock_guard<std::mutex> lock(data_modification_mutex);
     if (!queue.empty())
@@ -103,14 +104,14 @@ void Buffer::Purge(cg::Transform transform, float offset)
     }
 }
 
-void Buffer::Seed(SimpleWaypointPtr waypoint)
+void WaypointBuffer::Seed(SimpleWaypointPtr waypoint)
 {
     std::lock_guard<std::mutex> lock(data_modification_mutex);
     queue.clear();
     queue.push_back(waypoint);
 }
 
-std::vector<SimpleWaypointPtr> Buffer::GetSparseWaypoint(uint number_of_cuts = 6u)
+std::vector<SimpleWaypointPtr> WaypointBuffer::GetSparseWaypoints(uint number_of_cuts = 6u)
 {
     std::lock_guard<std::mutex> lock(data_modification_mutex);
     uint queue_size = queue.size();
@@ -124,7 +125,7 @@ std::vector<SimpleWaypointPtr> Buffer::GetSparseWaypoint(uint number_of_cuts = 6
     return sparse_waypoints;
 }
 
-void Buffer::Extend(float distance)
+void WaypointBuffer::Extend(float distance)
 {
     std::lock_guard<std::mutex> lock(data_modification_mutex);
     while (queue.back()->DistanceSquared(queue.front()) <= std::pow(distance, 2))
@@ -150,6 +151,24 @@ void Buffer::Extend(float distance)
         }
         queue.push_back(next_wp);
     }
+}
+
+bool WaypointBuffer::IsDivergenceInDistance(float distance)
+{
+    std::lock_guard<std::mutex> lock(data_modification_mutex);
+    bool divergence_found = false;
+    SimpleWaypointPtr target_waypoint = queue.front();
+    for (uint j = 0u;
+         !divergence_found &&
+         (j < queue.size()) &&
+         (queue.front()->DistanceSquared(target_waypoint) < std::pow(distance, 2));
+         ++j)
+    {
+        target_waypoint = queue.at(j);
+        if (target_waypoint->GetNextWaypoint().size() > 1)
+            divergence_found = true;
+    }
+    return divergence_found;
 }
 
 } // namespace traffic_manager

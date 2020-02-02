@@ -39,6 +39,9 @@ public:
     ActorPtr GetNextActor();
     /// Method to retrieve the number of registered actors in the register.
     uint GetNumberOfRegisteredActors();
+    /// Method to retrieve actor references of a given list of actor_ids
+    /// if they exist in the register.
+    std::vector<ActorPtr> GetActorReferences(std::vector<ActorId> actor_ids);
 };
 
 ActorRegistry::ActorRegistry() : looping_iterator(actor_map.begin()) {}
@@ -106,6 +109,21 @@ uint ActorRegistry::GetNumberOfRegisteredActors()
     std::lock_guard<std::mutex> lock(data_modification_mutex);
 
     return actor_map.size();
+}
+
+std::vector<ActorPtr> ActorRegistry::GetActorReferences(std::vector<ActorId> actor_ids)
+{
+    std::lock_guard<std::mutex> lock(data_modification_mutex);
+
+    std::vector<ActorPtr> actor_references;
+    for (ActorId& actor_id: actor_ids)
+    {
+        if (actor_map.find(actor_id) != actor_map.end())
+        {
+            actor_references.push_back(actor_map.at(actor_id));
+        }
+    }
+    return std::move(actor_references);
 }
 
 } // namespace traffic_manager

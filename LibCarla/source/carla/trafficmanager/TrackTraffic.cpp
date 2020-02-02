@@ -4,7 +4,7 @@
 // This work is licensed under the terms of the MIT license.
 // For a copy, see <https://opensource.org/licenses/MIT>.
 
-#include "carla/trafficmanager/LocalizationUtils.h"
+#include "carla/trafficmanager/TrackTraffic.h"
 
 namespace carla {
 namespace traffic_manager {
@@ -15,50 +15,11 @@ namespace LocalizationConstants {
 
   using namespace LocalizationConstants;
 
-  float DeviationCrossProduct(cg::Transform transform, cg::Location target_location) {
-
-    cg::Vector3D heading_vector = transform.GetForwardVector();
-    heading_vector.z = 0.0f;
-    heading_vector = heading_vector.MakeUnitVector();
-    cg::Location next_vector = target_location - transform.location;
-    next_vector.z = 0.0f;
-    if (next_vector.Length() > 2.0f * std::numeric_limits<float>::epsilon()) {
-      next_vector = next_vector.MakeUnitVector();
-      const float cross_z = heading_vector.x * next_vector.y - heading_vector.y * next_vector.x;
-      return cross_z;
-    } else {
-      return 0.0f;
-    }
-  }
-
-  float DeviationDotProduct(cg::Transform transform, cg::Location target_location,
-                            bool rear_offset, float offset) {
-
-    cg::Vector3D heading_vector = transform.GetForwardVector();
-    heading_vector.z = 0.0f;
-    heading_vector = heading_vector.MakeUnitVector();
-    cg::Location next_vector;
-
-    if (!rear_offset) {
-      next_vector = target_location - transform.location;
-    } else {
-      next_vector = target_location - (cg::Location(-1* offset * heading_vector)
-                                        + transform.location);
-    }
-
-    next_vector.z = 0.0f;
-    if (next_vector.Length() > 2.0f * std::numeric_limits<float>::epsilon()) {
-      next_vector = next_vector.MakeUnitVector();
-      const float dot_product = cg::Math::Dot(next_vector, heading_vector);
-      return dot_product;
-    } else {
-      return 0.0f;
-    }
-  }
-
   TrackTraffic::TrackTraffic() {}
 
   void TrackTraffic::UpdateUnregisteredGridPosition(const ActorId actor_id, const SimpleWaypointPtr& waypoint) {
+
+    std::lock_guard<std::mutex> lock(data_modification_mutex);
 
     // Add actor entry if not present.
     if (actor_to_grids.find(actor_id) == actor_to_grids.end()) {
@@ -101,6 +62,8 @@ namespace LocalizationConstants {
 
   void TrackTraffic::UpdateGridPosition(const ActorId actor_id, const Buffer& buffer) {
 
+    std::lock_guard<std::mutex> lock(data_modification_mutex);
+
     // Add actor entry if not present.
     if (actor_to_grids.find(actor_id) == actor_to_grids.end()) {
       actor_to_grids.insert({actor_id, {}});
@@ -142,7 +105,52 @@ namespace LocalizationConstants {
     }
   }
 
+  void TrackTraffic::UpdateGridPosition(const ActorId actor_id, const std::vector<SimpleWaypointPtr>& buffer) {
+
+    std::lock_guard<std::mutex> lock(data_modification_mutex);
+
+    // Add actor entry if not present.
+    if (actor_to_grids.find(actor_id) == actor_to_grids.end()) {
+      actor_to_grids.insert({actor_id, {}});
+    }
+
+    std::unordered_set<GeoGridId>& current_grids = actor_to_grids.at(actor_id);
+
+    // Clear current actor from all grids containing current actor.
+    for (auto& grid_id: current_grids) {
+      if (grid_to_actors.find(grid_id) != grid_to_actors.end()) {
+        ActorIdSet& actor_ids = grid_to_actors.at(grid_id);
+        if (actor_ids.find(actor_id) != actor_ids.end()) {
+          actor_ids.erase(actor_id);
+        }
+      }
+    }
+
+    // Clear all grids current actor is tracking.
+    current_grids.clear();
+
+    // Step through buffer and update grid list for actor and actor list for grids.
+    if (!buffer.empty()) {
+      for (const SimpleWaypointPtr& swp: buffer) {
+        GeoGridId ggid = swp->GetGeodesicGridId();
+        current_grids.insert(ggid);
+
+        // Add grid entry if not present.
+        if (grid_to_actors.find(ggid) == grid_to_actors.end()) {
+          grid_to_actors.insert({ggid, {}});
+        }
+
+        ActorIdSet& actor_ids = grid_to_actors.at(ggid);
+        if (actor_ids.find(actor_id) == actor_ids.end()) {
+          actor_ids.insert(actor_id);
+        }
+      }
+    }
+  }
+
   ActorIdSet TrackTraffic::GetOverlappingVehicles(ActorId actor_id) {
+
+    std::lock_guard<std::mutex> lock(data_modification_mutex);
 
     ActorIdSet actor_id_set;
 
@@ -160,6 +168,8 @@ namespace LocalizationConstants {
   }
 
   void TrackTraffic::DeleteActor(ActorId actor_id) {
+
+    std::lock_guard<std::mutex> lock(data_modification_mutex);
 
     if (actor_to_grids.find(actor_id) != actor_to_grids.end()) {
       std::unordered_set<GeoGridId>& grid_ids = actor_to_grids.at(actor_id);

@@ -26,12 +26,12 @@
 
 #include "carla/trafficmanager/AtomicActorSet.h"
 #include "carla/trafficmanager/InMemoryMap.h"
-#include "carla/trafficmanager/LocalizationUtils.h"
 #include "carla/trafficmanager/MessengerAndDataTypes.h"
 #include "carla/trafficmanager/Parameters.h"
+#include "carla/trafficmanager/PerformanceDiagnostics.h"
 #include "carla/trafficmanager/PipelineStage.h"
 #include "carla/trafficmanager/SimpleWaypoint.h"
-#include "carla/trafficmanager/PerformanceDiagnostics.h"
+#include "carla/trafficmanager/TrackTraffic.h"
 #include "carla/trafficmanager/Util.h"
 
 namespace carla {
